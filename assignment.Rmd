@@ -1,9 +1,4 @@
-Prediction of execution of an exercise based on measurements of accelerometers
-==============================================================================
-
 Introduction
-------------
-
 Human Activity Recognition (HAR) has been an emergent field of research during
 the recent years. It promises many potential applications such as elderly
 monitoring, life log systems for monitoring energy expenditure and for
@@ -38,9 +33,7 @@ registerDoMC(cores=4)
 ```
 
 Exploratory analysis
---------------------
-
-The data which is used for prediction is quite large. It consists 19,622
+Data which is used for prediction is quite large. It consists 19,622
 observations in 160 variables. The first variables contain general data about
 the measurement (time, user, etc.), the last one is the classe variable ("A" if
 the exercise was performed correctly), and the remaining ones are various
