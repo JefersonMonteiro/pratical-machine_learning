@@ -1,0 +1,102 @@
+---
+title: "Project - Pratical Machine Learning"
+author: "Jeferson S Monteiro"
+date: "10 de abril de 2019"
+output: html_document
+---
+
+# Data:
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+Libraries: 
+
+```{r,results='hide'}
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(gbm)
+library(doParallel)
+library(dplyr)
+library(e1071)
+trainset <- read.csv("pml-training.csv", head=TRUE, sep=",", na.strings=c("NA","#DIV/0!","")) 
+testset <- read.csv("pml-testing.csv", head=TRUE, sep=",", na.strings=c("NA","#DIV/0!",""))  
+```
+
+#Clean Data
+
+Clean test and training set data by removing columns that contain mostly NA values and low variance columns. There should be only columns that impact predictability.
+
+```{r}
+threshold <- sapply(trainset, function(df) {sum(is.na(df)==TRUE)/length(df)})
+thresholdtest <- sapply(testset, function(df) {sum(is.na(df)==TRUE)/length(df)})
+traincolidx <-names(which(threshold<0.95))
+trainset<-trainset[,traincolidx]
+testcolidx  <-names(which(thresholdtest<0.95))
+testset<-testset[,testcolidx]
+nov1 <- nearZeroVar(trainset,saveMetrics=TRUE)
+nov2 <- nearZeroVar(testset,saveMetrics=TRUE)
+goodTrainData <- trainset[,which(nov1$nzv==FALSE)]
+goodTestData <- testset[,which(nov2$nzv==FALSE)]
+RmInx1 <- grepl("X|timestamp|user_name", names(goodTrainData))
+goodTrainData <- goodTrainData[, which(RmInx1 ==FALSE)]
+RmInx2 <- grepl("X|timestamp|user_name|problem_id", names(goodTestData))
+goodTestData <- goodTestData[, which(RmInx2 ==FALSE)]
+set.seed(35161)
+indexTrain <- createDataPartition (goodTrainData$classe, p=0.75, list=FALSE)
+testing <-goodTrainData [- indexTrain,]
+inTrain <- createDataPartition(testing$classe, p = 0.75)[[1]]
+crossv_test <- testing[ -inTrain,]
+training <- goodTrainData [indexTrain ,]
+testing<-testing[inTrain,]
+```
+
+# Training Random Forest 
+
+```{r}
+ cl <- makeCluster(detectCores())
+ registerDoParallel(cl)
+ mod1 <- train(classe ~ ., data=training, method="rf")
+ pred1 <- predict(mod1, testing)
+ stopCluster(cl)
+ plot(mod1$finalModel)
+```
+
+## Displaying the confusion matrix
+
+```{r}
+ confusionMatrix(pred1, testing$classe)
+```
+
+The confusion matrix gives and accuracy of 99.69%
+ 
+## Importance of predictors
+ 
+ ```{r}
+ print(plot(varImp(mod1)))
+ ```
+## Out of sample error 
+ ```{r}
+pred1 <- predict(mod1,crossv_test)
+accuracy <- sum(pred1 == crossv_test$classe) / length(pred1)
+print(accuracy)
+ ```
+The out of sample Error achieved is  99.67 % with the validation set.
+ 
+## Prediction of new values
+ 
+The final step: Use the model and predict values from the test case
+
+ ```{r}
+ final<- predict(mod1,goodTestData)
+ 
+ print(final)
+ ```
